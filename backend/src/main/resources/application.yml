@@ -2,13 +2,28 @@ spring:
   application:
     name: digital-marketplace-backend
 
+  # Development default: in-memory H2 database so the application boots and
+  # runs without requiring a live PostgreSQL instance (Docker/PostgreSQL-free).
+  # Override at deploy time via DATABASE_URL / DB_USERNAME / DB_PASSWORD
+  # environment variables to point at PostgreSQL.
+  datasource:
+    url: ${DATABASE_URL:jdbc:h2:mem:digitalmarketplace;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE}
+    driver-class-name: ${DATABASE_DRIVER:org.h2.Driver}
+    username: ${DB_USERNAME:sa}
+    password: ${DB_PASSWORD:}
+  jpa:
+    hibernate:
+      ddl-auto: update
+    open-in-view: false
+    properties:
+      hibernate:
+        dialect: ${JPA_DIALECT:org.hibernate.dialect.H2Dialect}
+
 server:
   port: ${PORT:8080}
 
 # Placeholders for environment-specific / sensitive values.
 # Real values must be provided via environment variables at deploy time.
-# DataSource/JPA auto-configuration is currently excluded so the application
-# can start without a live PostgreSQL connection during scaffolding.
 
 app:
   jwt:
