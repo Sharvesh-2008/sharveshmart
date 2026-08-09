@@ -5,6 +5,7 @@ import com.digitalmarketplace.entity.Product;
 import com.digitalmarketplace.entity.ProductStatus;
 import com.digitalmarketplace.entity.User;
 import com.digitalmarketplace.exception.BusinessException;
+import com.digitalmarketplace.exception.ResourceNotFoundException;
 import com.digitalmarketplace.repository.CategoryRepository;
 import com.digitalmarketplace.repository.ProductRepository;
 import com.digitalmarketplace.repository.UserRepository;
@@ -33,9 +34,9 @@ public class ProductService {
     public Product createProduct(Long sellerId, Long categoryId, String title,
                                  String description, BigDecimal price) {
         User seller = userRepository.findById(sellerId)
-                .orElseThrow(() -> new BusinessException("Seller not found"));
+                .orElseThrow(() -> new ResourceNotFoundException("Seller not found"));
         Category category = categoryRepository.findById(categoryId)
-                .orElseThrow(() -> new BusinessException("Category not found"));
+                .orElseThrow(() -> new ResourceNotFoundException("Category not found"));
 
         Product product = new Product();
         product.setSeller(seller);
@@ -53,7 +54,7 @@ public class ProductService {
         Product product = requireOwnedProduct(sellerId, productId);
         if (categoryId != null) {
             Category category = categoryRepository.findById(categoryId)
-                    .orElseThrow(() -> new BusinessException("Category not found"));
+                    .orElseThrow(() -> new ResourceNotFoundException("Category not found"));
             product.setCategory(category);
         }
         if (title != null) {
@@ -114,6 +115,11 @@ public class ProductService {
     }
 
     @Transactional(readOnly = true)
+    public List<Product> listPending() {
+        return productRepository.findByStatus(ProductStatus.PENDING_APPROVAL);
+    }
+
+    @Transactional(readOnly = true)
     public Product getApprovedProduct(Long productId) {
         Product product = requireProduct(productId);
         if (product.getStatus() != ProductStatus.APPROVED) {
@@ -124,11 +130,11 @@ public class ProductService {
 
     private Product requireOwnedProduct(Long sellerId, Long productId) {
         return productRepository.findByIdAndSellerId(productId, sellerId)
-                .orElseThrow(() -> new BusinessException("Product not found or not owned by seller"));
+                .orElseThrow(() -> new ResourceNotFoundException("Product not found or not owned by seller"));
     }
 
     private Product requireProduct(Long productId) {
         return productRepository.findById(productId)
-                .orElseThrow(() -> new BusinessException("Product not found"));
+                .orElseThrow(() -> new ResourceNotFoundException("Product not found"));
     }
 }

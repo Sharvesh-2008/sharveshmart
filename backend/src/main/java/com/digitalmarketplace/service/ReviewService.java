@@ -5,6 +5,7 @@ import com.digitalmarketplace.entity.PurchaseEntitlement;
 import com.digitalmarketplace.entity.Review;
 import com.digitalmarketplace.entity.User;
 import com.digitalmarketplace.exception.BusinessException;
+import com.digitalmarketplace.exception.ResourceNotFoundException;
 import com.digitalmarketplace.repository.ProductRepository;
 import com.digitalmarketplace.repository.PurchaseEntitlementRepository;
 import com.digitalmarketplace.repository.ReviewRepository;
@@ -36,9 +37,9 @@ public class ReviewService {
     public Review createReview(Long userId, Long productId, short rating, String comment) {
         validateRating(rating);
         User user = userRepository.findById(userId)
-                .orElseThrow(() -> new BusinessException("User not found"));
+                .orElseThrow(() -> new ResourceNotFoundException("User not found"));
         Product product = productRepository.findById(productId)
-                .orElseThrow(() -> new BusinessException("Product not found"));
+                .orElseThrow(() -> new ResourceNotFoundException("Product not found"));
 
         if (reviewRepository.findByUserIdAndProductId(userId, productId).isPresent()) {
             throw new BusinessException("A review already exists for this product");
@@ -57,7 +58,7 @@ public class ReviewService {
     public Review updateReview(Long userId, Long reviewId, short rating, String comment) {
         validateRating(rating);
         Review review = reviewRepository.findById(reviewId)
-                .orElseThrow(() -> new BusinessException("Review not found"));
+                .orElseThrow(() -> new ResourceNotFoundException("Review not found"));
         if (!review.getUser().getId().equals(userId)) {
             throw new BusinessException("Only the review author can update it");
         }
@@ -69,7 +70,7 @@ public class ReviewService {
     @Transactional
     public void deleteReview(Long userId, Long reviewId) {
         Review review = reviewRepository.findById(reviewId)
-                .orElseThrow(() -> new BusinessException("Review not found"));
+                .orElseThrow(() -> new ResourceNotFoundException("Review not found"));
         if (!review.getUser().getId().equals(userId)) {
             throw new BusinessException("Only the review author can delete it");
         }

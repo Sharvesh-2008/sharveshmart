@@ -6,6 +6,7 @@ import com.digitalmarketplace.entity.Product;
 import com.digitalmarketplace.entity.PurchaseEntitlement;
 import com.digitalmarketplace.entity.User;
 import com.digitalmarketplace.repository.OrderItemRepository;
+import com.digitalmarketplace.repository.ProductFileRepository;
 import com.digitalmarketplace.repository.PurchaseEntitlementRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -35,11 +36,15 @@ class PurchaseEntitlementServiceTest {
     @Mock
     private OrderItemRepository orderItemRepository;
 
+    @Mock
+    private ProductFileRepository productFileRepository;
+
     private PurchaseEntitlementService entitlementService;
 
     @BeforeEach
     void setUp() {
-        entitlementService = new PurchaseEntitlementService(entitlementRepository, orderItemRepository);
+        entitlementService = new PurchaseEntitlementService(
+                entitlementRepository, orderItemRepository, productFileRepository);
     }
 
     private User user(long id) {

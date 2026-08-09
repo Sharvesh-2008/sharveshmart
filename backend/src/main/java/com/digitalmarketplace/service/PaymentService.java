@@ -5,6 +5,7 @@ import com.digitalmarketplace.entity.OrderStatus;
 import com.digitalmarketplace.entity.Payment;
 import com.digitalmarketplace.entity.PaymentStatus;
 import com.digitalmarketplace.exception.BusinessException;
+import com.digitalmarketplace.exception.ResourceNotFoundException;
 import com.digitalmarketplace.repository.OrderRepository;
 import com.digitalmarketplace.repository.PaymentRepository;
 import com.digitalmarketplace.service.payment.PaymentProcessor;
@@ -36,7 +37,7 @@ public class PaymentService {
     @Transactional
     public Payment processOrderPayment(Long orderId) {
         Order order = orderRepository.findById(orderId)
-                .orElseThrow(() -> new BusinessException("Order not found"));
+                .orElseThrow(() -> new ResourceNotFoundException("Order not found"));
         if (order.getStatus() != OrderStatus.PENDING) {
             throw new BusinessException("Only pending orders can be paid");
         }

@@ -5,6 +5,7 @@ import com.digitalmarketplace.entity.CartItem;
 import com.digitalmarketplace.entity.Product;
 import com.digitalmarketplace.entity.User;
 import com.digitalmarketplace.exception.BusinessException;
+import com.digitalmarketplace.exception.ResourceNotFoundException;
 import com.digitalmarketplace.repository.CartItemRepository;
 import com.digitalmarketplace.repository.CartRepository;
 import com.digitalmarketplace.repository.UserRepository;
@@ -36,7 +37,7 @@ public class CartService {
         return cartRepository.findByUserId(userId)
                 .orElseGet(() -> {
                     User user = userRepository.findById(userId)
-                            .orElseThrow(() -> new BusinessException("User not found"));
+                            .orElseThrow(() -> new ResourceNotFoundException("User not found"));
                     Cart cart = new Cart();
                     cart.setUser(user);
                     return cartRepository.save(cart);
@@ -46,7 +47,7 @@ public class CartService {
     @Transactional(readOnly = true)
     public Cart getCart(Long userId) {
         return cartRepository.findByUserId(userId)
-                .orElseThrow(() -> new BusinessException("Cart not found"));
+                .orElseThrow(() -> new ResourceNotFoundException("Cart not found"));
     }
 
     @Transactional
@@ -75,7 +76,7 @@ public class CartService {
         }
         Cart cart = getOrCreateCart(userId);
         CartItem item = cartItemRepository.findByCartIdAndProductId(cart.getId(), productId)
-                .orElseThrow(() -> new BusinessException("Cart item not found"));
+                .orElseThrow(() -> new ResourceNotFoundException("Cart item not found"));
         item.setQuantity(quantity);
         return cartItemRepository.save(item);
     }
@@ -84,14 +85,14 @@ public class CartService {
     public void removeItem(Long userId, Long productId) {
         Cart cart = getOrCreateCart(userId);
         CartItem item = cartItemRepository.findByCartIdAndProductId(cart.getId(), productId)
-                .orElseThrow(() -> new BusinessException("Cart item not found"));
+                .orElseThrow(() -> new ResourceNotFoundException("Cart item not found"));
         cartItemRepository.delete(item);
     }
 
     @Transactional(readOnly = true)
     public List<CartItem> listItems(Long userId) {
-        Cart cart = cartRepository.findByUserId(userId)
-                .orElseThrow(() -> new BusinessException("Cart not found"));
-        return cartItemRepository.findByCartId(cart.getId());
+        return cartRepository.findByUserId(userId)
+                .map(cart -> cartItemRepository.findByCartId(cart.getId()))
+                .orElseGet(List::of);
     }
 }

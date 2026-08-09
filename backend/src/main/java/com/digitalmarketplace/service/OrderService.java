@@ -8,6 +8,7 @@ import com.digitalmarketplace.entity.OrderStatus;
 import com.digitalmarketplace.entity.Product;
 import com.digitalmarketplace.entity.User;
 import com.digitalmarketplace.exception.BusinessException;
+import com.digitalmarketplace.exception.ResourceNotFoundException;
 import com.digitalmarketplace.repository.CartRepository;
 import com.digitalmarketplace.repository.OrderItemRepository;
 import com.digitalmarketplace.repository.OrderRepository;
@@ -43,9 +44,9 @@ public class OrderService {
     @Transactional
     public Order createOrderFromCart(Long userId) {
         User user = userRepository.findById(userId)
-                .orElseThrow(() -> new BusinessException("User not found"));
+                .orElseThrow(() -> new ResourceNotFoundException("User not found"));
         Cart cart = cartRepository.findByUserId(userId)
-                .orElseThrow(() -> new BusinessException("Cart not found"));
+                .orElseThrow(() -> new ResourceNotFoundException("Cart not found"));
         List<CartItem> items = cart.getItems();
         if (items == null || items.isEmpty()) {
             throw new BusinessException("Cart is empty");
@@ -85,7 +86,7 @@ public class OrderService {
     @Transactional(readOnly = true)
     public Order getOrder(Long orderId) {
         return orderRepository.findById(orderId)
-                .orElseThrow(() -> new BusinessException("Order not found"));
+                .orElseThrow(() -> new ResourceNotFoundException("Order not found"));
     }
 
     @Transactional(readOnly = true)
