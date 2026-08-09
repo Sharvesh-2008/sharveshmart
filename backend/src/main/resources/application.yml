@@ -1,0 +1,22 @@
+spring:
+  application:
+    name: digital-marketplace-backend
+
+server:
+  port: ${PORT:8080}
+
+# Placeholders for environment-specific / sensitive values.
+# Real values must be provided via environment variables at deploy time.
+# DataSource/JPA auto-configuration is currently excluded so the application
+# can start without a live PostgreSQL connection during scaffolding.
+
+app:
+  jwt:
+    secret: ${JWT_SECRET:}
+    expiration-ms: ${JWT_EXPIRATION_MS:86400000}
+
+springdoc:
+  swagger-ui:
+    path: /swagger-ui.html
+  api-docs:
+    path: /v3/api-docs
