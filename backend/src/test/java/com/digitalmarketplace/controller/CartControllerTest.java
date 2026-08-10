@@ -4,12 +4,17 @@ import com.digitalmarketplace.entity.Cart;
 import com.digitalmarketplace.entity.CartItem;
 import com.digitalmarketplace.entity.Product;
 import com.digitalmarketplace.entity.User;
+import com.digitalmarketplace.entity.UserRole;
 import com.digitalmarketplace.exception.BusinessException;
 import com.digitalmarketplace.service.CartService;
+import com.digitalmarketplace.support.SecurityTestSupport;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
+import org.springframework.context.annotation.Import;
 import org.springframework.http.MediaType;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
@@ -29,6 +34,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 @WebMvcTest(CartController.class)
 @AutoConfigureMockMvc(addFilters = false)
+@Import(SecurityTestSupport.class)
 class CartControllerTest {
 
     @Autowired
@@ -36,6 +42,16 @@ class CartControllerTest {
 
     @MockitoBean
     private CartService cartService;
+
+    @BeforeEach
+    void setUp() {
+        SecurityTestSupport.authenticate(2L, "buyer@example.com", UserRole.USER);
+    }
+
+    @AfterEach
+    void tearDown() {
+        SecurityTestSupport.clear();
+    }
 
     private User user() {
         User user = new User();
@@ -74,7 +90,7 @@ class CartControllerTest {
         when(cartService.getOrCreateCart(2L)).thenReturn(cart());
         when(cartService.listItems(2L)).thenReturn(List.of(cartItem(1L, 2)));
 
-        mockMvc.perform(get("/api/cart").header("X-User-Id", "2"))
+        mockMvc.perform(get("/api/cart"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.id").value(5))
                 .andExpect(jsonPath("$.userId").value(2))
@@ -83,17 +99,10 @@ class CartControllerTest {
     }
 
     @Test
-    void getCartWithoutUserHeaderReturnsBadRequest() throws Exception {
-        mockMvc.perform(get("/api/cart"))
-                .andExpect(status().isBadRequest());
-    }
-
-    @Test
     void addItemReturnsCreated() throws Exception {
         when(cartService.addItem(eq(2L), eq(3L), eq(2))).thenReturn(cartItem(1L, 2));
 
         mockMvc.perform(post("/api/cart/items")
-                        .header("X-User-Id", "2")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                                 {
@@ -110,7 +119,6 @@ class CartControllerTest {
     @Test
     void addItemWithInvalidQuantityReturnsBadRequest() throws Exception {
         mockMvc.perform(post("/api/cart/items")
-                        .header("X-User-Id", "2")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                                 {
@@ -122,24 +130,10 @@ class CartControllerTest {
     }
 
     @Test
-    void addItemWithoutUserHeaderReturnsBadRequest() throws Exception {
-        mockMvc.perform(post("/api/cart/items")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content("""
-                                {
-                                  "productId": 3,
-                                  "quantity": 1
-                                }
-                                """))
-                .andExpect(status().isBadRequest());
-    }
-
-    @Test
     void updateItemReturnsUpdated() throws Exception {
         when(cartService.updateItemQuantity(2L, 3L, 5)).thenReturn(cartItem(1L, 5));
 
         mockMvc.perform(put("/api/cart/items/3")
-                        .header("X-User-Id", "2")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                                 {
@@ -156,7 +150,6 @@ class CartControllerTest {
                 .thenThrow(new com.digitalmarketplace.exception.ResourceNotFoundException("Cart item not found"));
 
         mockMvc.perform(put("/api/cart/items/9")
-                        .header("X-User-Id", "2")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                                 {
@@ -168,7 +161,7 @@ class CartControllerTest {
 
     @Test
     void removeItemReturnsNoContent() throws Exception {
-        mockMvc.perform(delete("/api/cart/items/3").header("X-User-Id", "2"))
+        mockMvc.perform(delete("/api/cart/items/3"))
                 .andExpect(status().isNoContent());
     }
 
@@ -178,7 +171,6 @@ class CartControllerTest {
                 .thenThrow(new BusinessException("Product is not available for purchase"));
 
         mockMvc.perform(post("/api/cart/items")
-                        .header("X-User-Id", "2")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                                 {

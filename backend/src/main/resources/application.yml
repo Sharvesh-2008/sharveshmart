@@ -27,7 +27,9 @@ server:
 
 app:
   jwt:
-    secret: ${JWT_SECRET:}
+    # Production must set JWT_SECRET (>= 32 bytes for HS256). The fallback below is
+    # a local-development-only secret so the app boots with spring-boot:run.
+    secret: ${JWT_SECRET:dev-only-jwt-secret-change-me-in-production-0123456789}
     expiration-ms: ${JWT_EXPIRATION_MS:86400000}
 
 springdoc:

@@ -5,6 +5,7 @@ import com.digitalmarketplace.entity.Product;
 import com.digitalmarketplace.service.ProductService;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.constraints.Positive;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -27,11 +28,13 @@ public class ProductModerationController {
     }
 
     @GetMapping("/pending")
+    @PreAuthorize("hasRole('ADMIN')")
     public List<ProductResponse> listPending() {
         return productService.listPending().stream().map(ProductResponse::from).toList();
     }
 
     @PostMapping("/{productId}/approve")
+    @PreAuthorize("hasRole('ADMIN')")
     public ProductResponse approveProduct(
             @PathVariable @Positive(message = "Product id must be positive") Long productId) {
         Product product = productService.approveProduct(productId);
@@ -39,6 +42,7 @@ public class ProductModerationController {
     }
 
     @PostMapping("/{productId}/reject")
+    @PreAuthorize("hasRole('ADMIN')")
     public ProductResponse rejectProduct(
             @PathVariable @Positive(message = "Product id must be positive") Long productId) {
         Product product = productService.rejectProduct(productId);

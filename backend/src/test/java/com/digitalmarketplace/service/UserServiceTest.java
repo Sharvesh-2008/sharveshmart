@@ -9,6 +9,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 
 import java.util.Optional;
@@ -95,5 +96,36 @@ class UserServiceTest {
         when(userRepository.findByEmail("a@b.com")).thenReturn(Optional.of(user));
 
         assertEquals(user, userService.findByEmail("a@b.com").orElseThrow(AssertionError::new));
+    }
+
+    @Test
+    void authenticateReturnsUserWhenCredentialsMatch() {
+        User user = new User();
+        user.setId(5L);
+        user.setEmail("alice@example.com");
+        user.setPasswordHash("$2a$10$hashed");
+        when(userRepository.findByEmail("alice@example.com")).thenReturn(Optional.of(user));
+        when(passwordEncoder.matches("secret", "$2a$10$hashed")).thenReturn(true);
+
+        assertEquals(user, userService.authenticate("alice@example.com", "secret"));
+    }
+
+    @Test
+    void authenticateThrowsWhenUserNotFound() {
+        when(userRepository.findByEmail("missing@example.com")).thenReturn(Optional.empty());
+
+        assertThrows(BadCredentialsException.class,
+                () -> userService.authenticate("missing@example.com", "secret"));
+    }
+
+    @Test
+    void authenticateThrowsWhenPasswordDoesNotMatch() {
+        User user = new User();
+        user.setPasswordHash("$2a$10$hashed");
+        when(userRepository.findByEmail("alice@example.com")).thenReturn(Optional.of(user));
+        when(passwordEncoder.matches("wrong", "$2a$10$hashed")).thenReturn(false);
+
+        assertThrows(BadCredentialsException.class,
+                () -> userService.authenticate("alice@example.com", "wrong"));
     }
 }

@@ -4,17 +4,19 @@ import com.digitalmarketplace.dto.OrderDetailResponse;
 import com.digitalmarketplace.dto.OrderSummaryResponse;
 import com.digitalmarketplace.entity.Order;
 import com.digitalmarketplace.entity.OrderItem;
+import com.digitalmarketplace.security.UserPrincipal;
 import com.digitalmarketplace.service.OrderService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.constraints.Positive;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -34,9 +36,9 @@ public class OrderController {
 
     @Operation(summary = "Checkout the current user's cart into an order")
     @PostMapping("/checkout")
-    public ResponseEntity<OrderDetailResponse> checkout(
-            @RequestHeader("X-User-Id") @Positive(message = "User id must be positive") Long userId) {
-        Order order = orderService.createOrderFromCart(userId);
+    @PreAuthorize("hasRole('USER')")
+    public ResponseEntity<OrderDetailResponse> checkout(@AuthenticationPrincipal UserPrincipal principal) {
+        Order order = orderService.createOrderFromCart(principal.getId());
         List<OrderItem> items = orderService.listOrderItems(order.getId());
         OrderDetailResponse response = OrderDetailResponse.from(order, items);
         return ResponseEntity
@@ -45,14 +47,15 @@ public class OrderController {
     }
 
     @GetMapping
-    public List<OrderSummaryResponse> listOrders(
-            @RequestHeader("X-User-Id") @Positive(message = "User id must be positive") Long userId) {
-        return orderService.listOrdersByUser(userId).stream().map(OrderSummaryResponse::from).toList();
+    @PreAuthorize("hasRole('USER')")
+    public List<OrderSummaryResponse> listOrders(@AuthenticationPrincipal UserPrincipal principal) {
+        return orderService.listOrdersByUser(principal.getId()).stream().map(OrderSummaryResponse::from).toList();
     }
 
     @GetMapping("/{orderId}")
+    @PreAuthorize("hasRole('USER')")
     public OrderDetailResponse getOrder(
-            @RequestHeader("X-User-Id") @Positive(message = "User id must be positive") Long userId,
+            @AuthenticationPrincipal UserPrincipal principal,
             @PathVariable @Positive(message = "Order id must be positive") Long orderId) {
         Order order = orderService.getOrder(orderId);
         List<OrderItem> items = orderService.listOrderItems(orderId);

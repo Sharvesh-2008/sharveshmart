@@ -5,11 +5,16 @@ import com.digitalmarketplace.entity.Product;
 import com.digitalmarketplace.entity.ProductFile;
 import com.digitalmarketplace.entity.PurchaseEntitlement;
 import com.digitalmarketplace.entity.User;
+import com.digitalmarketplace.entity.UserRole;
 import com.digitalmarketplace.service.PurchaseEntitlementService;
+import com.digitalmarketplace.support.SecurityTestSupport;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
+import org.springframework.context.annotation.Import;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 
@@ -24,6 +29,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 @WebMvcTest(DigitalLibraryController.class)
 @AutoConfigureMockMvc(addFilters = false)
+@Import(SecurityTestSupport.class)
 class DigitalLibraryControllerTest {
 
     @Autowired
@@ -31,6 +37,16 @@ class DigitalLibraryControllerTest {
 
     @MockitoBean
     private PurchaseEntitlementService entitlementService;
+
+    @BeforeEach
+    void setUp() {
+        SecurityTestSupport.authenticate(2L, "buyer@example.com", UserRole.USER);
+    }
+
+    @AfterEach
+    void tearDown() {
+        SecurityTestSupport.clear();
+    }
 
     private Product product() {
         Product product = new Product();
@@ -69,7 +85,7 @@ class DigitalLibraryControllerTest {
     void listLibraryReturnsItems() throws Exception {
         when(entitlementService.listForUser(2L)).thenReturn(List.of(entitlement()));
 
-        mockMvc.perform(get("/api/library").header("X-User-Id", "2"))
+        mockMvc.perform(get("/api/library"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$[0].id").value(9))
                 .andExpect(jsonPath("$[0].productId").value(3))
@@ -78,17 +94,11 @@ class DigitalLibraryControllerTest {
     }
 
     @Test
-    void listLibraryWithoutUserHeaderReturnsBadRequest() throws Exception {
-        mockMvc.perform(get("/api/library"))
-                .andExpect(status().isBadRequest());
-    }
-
-    @Test
     void downloadReturnsAuthorization() throws Exception {
         when(entitlementService.getAuthorizedFile(2L, 3L))
                 .thenReturn(Optional.of(productFile()));
 
-        mockMvc.perform(get("/api/library/products/3/download").header("X-User-Id", "2"))
+        mockMvc.perform(get("/api/library/products/3/download"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.productId").value(3))
                 .andExpect(jsonPath("$.productTitle").value("Spring Guide"))
@@ -101,13 +111,13 @@ class DigitalLibraryControllerTest {
     void downloadWhenNotEntitledReturnsForbidden() throws Exception {
         when(entitlementService.getAuthorizedFile(2L, 3L)).thenReturn(Optional.empty());
 
-        mockMvc.perform(get("/api/library/products/3/download").header("X-User-Id", "2"))
+        mockMvc.perform(get("/api/library/products/3/download"))
                 .andExpect(status().isForbidden());
     }
 
     @Test
     void downloadWithInvalidProductIdReturnsBadRequest() throws Exception {
-        mockMvc.perform(get("/api/library/products/0/download").header("X-User-Id", "2"))
+        mockMvc.perform(get("/api/library/products/0/download"))
                 .andExpect(status().isBadRequest());
     }
 }

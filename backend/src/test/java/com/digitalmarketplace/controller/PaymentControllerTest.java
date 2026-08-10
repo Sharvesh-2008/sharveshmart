@@ -4,12 +4,17 @@ import com.digitalmarketplace.entity.Order;
 import com.digitalmarketplace.entity.OrderStatus;
 import com.digitalmarketplace.entity.Payment;
 import com.digitalmarketplace.entity.PaymentStatus;
+import com.digitalmarketplace.entity.UserRole;
 import com.digitalmarketplace.exception.ResourceNotFoundException;
 import com.digitalmarketplace.service.PaymentService;
+import com.digitalmarketplace.support.SecurityTestSupport;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
+import org.springframework.context.annotation.Import;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 
@@ -23,6 +28,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 @WebMvcTest(PaymentController.class)
 @AutoConfigureMockMvc(addFilters = false)
+@Import(SecurityTestSupport.class)
 class PaymentControllerTest {
 
     @Autowired
@@ -30,6 +36,16 @@ class PaymentControllerTest {
 
     @MockitoBean
     private PaymentService paymentService;
+
+    @BeforeEach
+    void setUp() {
+        SecurityTestSupport.authenticate(2L, "buyer@example.com", UserRole.USER);
+    }
+
+    @AfterEach
+    void tearDown() {
+        SecurityTestSupport.clear();
+    }
 
     private Payment payment() {
         Order order = new Order();
@@ -52,7 +68,7 @@ class PaymentControllerTest {
     void payReturnsPaymentResponse() throws Exception {
         when(paymentService.processOrderPayment(7L)).thenReturn(payment());
 
-        mockMvc.perform(post("/api/orders/7/pay").header("X-User-Id", "2"))
+        mockMvc.perform(post("/api/orders/7/pay"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.id").value(1))
                 .andExpect(jsonPath("$.orderId").value(7))
@@ -66,19 +82,13 @@ class PaymentControllerTest {
         when(paymentService.processOrderPayment(99L))
                 .thenThrow(new ResourceNotFoundException("Order not found"));
 
-        mockMvc.perform(post("/api/orders/99/pay").header("X-User-Id", "2"))
+        mockMvc.perform(post("/api/orders/99/pay"))
                 .andExpect(status().isNotFound());
     }
 
     @Test
-    void payWithoutUserHeaderReturnsBadRequest() throws Exception {
-        mockMvc.perform(post("/api/orders/7/pay"))
-                .andExpect(status().isBadRequest());
-    }
-
-    @Test
     void payWithInvalidOrderIdReturnsBadRequest() throws Exception {
-        mockMvc.perform(post("/api/orders/0/pay").header("X-User-Id", "2"))
+        mockMvc.perform(post("/api/orders/0/pay"))
                 .andExpect(status().isBadRequest());
     }
 }

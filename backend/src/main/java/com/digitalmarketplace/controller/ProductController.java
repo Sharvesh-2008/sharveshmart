@@ -4,6 +4,7 @@ import com.digitalmarketplace.dto.ProductCreateRequest;
 import com.digitalmarketplace.dto.ProductResponse;
 import com.digitalmarketplace.dto.ProductUpdateRequest;
 import com.digitalmarketplace.entity.Product;
+import com.digitalmarketplace.security.UserPrincipal;
 import com.digitalmarketplace.service.ProductService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -12,6 +13,8 @@ import jakarta.validation.constraints.Positive;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -20,7 +23,6 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -59,11 +61,12 @@ public class ProductController {
 
     @Operation(summary = "Create a new draft product")
     @PostMapping("/api/products")
+    @PreAuthorize("hasRole('SELLER')")
     public ResponseEntity<ProductResponse> createProduct(
-            @RequestHeader("X-User-Id") @Positive(message = "User id must be positive") Long userId,
+            @AuthenticationPrincipal UserPrincipal principal,
             @Valid @RequestBody ProductCreateRequest request) {
         Product product = productService.createProduct(
-                userId, request.categoryId(), request.title(), request.description(), request.price());
+                principal.getId(), request.categoryId(), request.title(), request.description(), request.price());
         ProductResponse response = ProductResponse.from(product);
         return ResponseEntity
                 .status(HttpStatus.CREATED)
@@ -72,27 +75,30 @@ public class ProductController {
     }
 
     @PutMapping("/api/products/{productId}")
+    @PreAuthorize("hasRole('SELLER')")
     public ProductResponse updateProduct(
-            @RequestHeader("X-User-Id") @Positive(message = "User id must be positive") Long userId,
+            @AuthenticationPrincipal UserPrincipal principal,
             @PathVariable @Positive(message = "Product id must be positive") Long productId,
             @Valid @RequestBody ProductUpdateRequest request) {
         Product product = productService.updateProduct(
-                userId, productId, request.categoryId(), request.title(), request.description(), request.price());
+                principal.getId(), productId, request.categoryId(), request.title(), request.description(), request.price());
         return ProductResponse.from(product);
     }
 
     @DeleteMapping("/api/products/{productId}")
+    @PreAuthorize("hasRole('SELLER')")
     public ResponseEntity<Void> archiveProduct(
-            @RequestHeader("X-User-Id") @Positive(message = "User id must be positive") Long userId,
+            @AuthenticationPrincipal UserPrincipal principal,
             @PathVariable @Positive(message = "Product id must be positive") Long productId) {
-        productService.archiveProduct(userId, productId);
+        productService.archiveProduct(principal.getId(), productId);
         return ResponseEntity.noContent().build();
     }
 
     @PatchMapping("/api/products/{productId}/submit")
+    @PreAuthorize("hasRole('SELLER')")
     public ProductResponse submitProduct(
-            @RequestHeader("X-User-Id") @Positive(message = "User id must be positive") Long userId,
+            @AuthenticationPrincipal UserPrincipal principal,
             @PathVariable @Positive(message = "Product id must be positive") Long productId) {
-        return ProductResponse.from(productService.submitForApproval(userId, productId));
+        return ProductResponse.from(productService.submitForApproval(principal.getId(), productId));
     }
 }

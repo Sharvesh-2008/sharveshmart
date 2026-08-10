@@ -1,9 +1,12 @@
 package com.digitalmarketplace.controller;
 
+import com.digitalmarketplace.dto.LoginRequest;
+import com.digitalmarketplace.dto.LoginResponse;
 import com.digitalmarketplace.dto.RegisterRequest;
 import com.digitalmarketplace.dto.UserResponse;
 import com.digitalmarketplace.entity.User;
 import com.digitalmarketplace.entity.UserRole;
+import com.digitalmarketplace.security.JwtService;
 import com.digitalmarketplace.service.UserService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -20,13 +23,15 @@ import java.net.URI;
 
 @RestController
 @RequestMapping("/api/auth")
-@Tag(name = "Authentication", description = "Public registration endpoint")
+@Tag(name = "Authentication", description = "Public registration and login endpoints")
 public class AuthController {
 
     private final UserService userService;
+    private final JwtService jwtService;
 
-    public AuthController(UserService userService) {
+    public AuthController(UserService userService, JwtService jwtService) {
         this.userService = userService;
+        this.jwtService = jwtService;
     }
 
     @Operation(summary = "Register a new user account")
@@ -39,5 +44,13 @@ public class AuthController {
                 .status(HttpStatus.CREATED)
                 .header(HttpHeaders.LOCATION, "/api/users/" + user.getId())
                 .body(response);
+    }
+
+    @Operation(summary = "Log in and receive a JWT")
+    @PostMapping("/login")
+    public LoginResponse login(@Valid @RequestBody LoginRequest request) {
+        User user = userService.authenticate(request.email(), request.password());
+        String token = jwtService.generateToken(user);
+        return LoginResponse.from(token, jwtService.getExpirationSeconds(), user);
     }
 }

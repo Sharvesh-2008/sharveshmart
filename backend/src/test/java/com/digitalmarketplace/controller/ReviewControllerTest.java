@@ -3,13 +3,18 @@ package com.digitalmarketplace.controller;
 import com.digitalmarketplace.entity.Product;
 import com.digitalmarketplace.entity.Review;
 import com.digitalmarketplace.entity.User;
+import com.digitalmarketplace.entity.UserRole;
 import com.digitalmarketplace.exception.BusinessException;
 import com.digitalmarketplace.exception.ResourceNotFoundException;
 import com.digitalmarketplace.service.ReviewService;
+import com.digitalmarketplace.support.SecurityTestSupport;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
+import org.springframework.context.annotation.Import;
 import org.springframework.http.MediaType;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
@@ -27,6 +32,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 @WebMvcTest(ReviewController.class)
 @AutoConfigureMockMvc(addFilters = false)
+@Import(SecurityTestSupport.class)
 class ReviewControllerTest {
 
     @Autowired
@@ -34,6 +40,16 @@ class ReviewControllerTest {
 
     @MockitoBean
     private ReviewService reviewService;
+
+    @BeforeEach
+    void setUp() {
+        SecurityTestSupport.authenticate(2L, "buyer@example.com", UserRole.USER);
+    }
+
+    @AfterEach
+    void tearDown() {
+        SecurityTestSupport.clear();
+    }
 
     private User user() {
         User user = new User();
@@ -77,7 +93,6 @@ class ReviewControllerTest {
         when(reviewService.createReview(2L, 3L, (short) 5, "Great book")).thenReturn(review());
 
         mockMvc.perform(post("/api/products/3/reviews")
-                        .header("X-User-Id", "2")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                                 {
@@ -93,23 +108,10 @@ class ReviewControllerTest {
     @Test
     void createReviewWithInvalidRatingReturnsBadRequest() throws Exception {
         mockMvc.perform(post("/api/products/3/reviews")
-                        .header("X-User-Id", "2")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                                 {
                                   "rating": 6
-                                }
-                                """))
-                .andExpect(status().isBadRequest());
-    }
-
-    @Test
-    void createReviewWithoutUserHeaderReturnsBadRequest() throws Exception {
-        mockMvc.perform(post("/api/products/3/reviews")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content("""
-                                {
-                                  "rating": 5
                                 }
                                 """))
                 .andExpect(status().isBadRequest());
@@ -121,7 +123,6 @@ class ReviewControllerTest {
                 .thenThrow(new BusinessException("Only buyers of the product can review it"));
 
         mockMvc.perform(post("/api/products/3/reviews")
-                        .header("X-User-Id", "2")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                                 {
@@ -137,7 +138,6 @@ class ReviewControllerTest {
         when(reviewService.updateReview(2L, 1L, (short) 4, "Good")).thenReturn(review());
 
         mockMvc.perform(put("/api/reviews/1")
-                        .header("X-User-Id", "2")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                                 {
@@ -155,7 +155,6 @@ class ReviewControllerTest {
                 .thenThrow(new ResourceNotFoundException("Review not found"));
 
         mockMvc.perform(put("/api/reviews/99")
-                        .header("X-User-Id", "2")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                                 {
@@ -168,7 +167,7 @@ class ReviewControllerTest {
 
     @Test
     void deleteReviewReturnsNoContent() throws Exception {
-        mockMvc.perform(delete("/api/reviews/1").header("X-User-Id", "2"))
+        mockMvc.perform(delete("/api/reviews/1"))
                 .andExpect(status().isNoContent());
     }
 }

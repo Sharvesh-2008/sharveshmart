@@ -4,13 +4,18 @@ import com.digitalmarketplace.entity.Category;
 import com.digitalmarketplace.entity.Product;
 import com.digitalmarketplace.entity.ProductStatus;
 import com.digitalmarketplace.entity.User;
+import com.digitalmarketplace.entity.UserRole;
 import com.digitalmarketplace.exception.BusinessException;
 import com.digitalmarketplace.exception.ResourceNotFoundException;
 import com.digitalmarketplace.service.ProductService;
+import com.digitalmarketplace.support.SecurityTestSupport;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
+import org.springframework.context.annotation.Import;
 import org.springframework.http.MediaType;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
@@ -33,6 +38,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 @WebMvcTest(ProductController.class)
 @AutoConfigureMockMvc(addFilters = false)
+@Import(SecurityTestSupport.class)
 class ProductControllerTest {
 
     @Autowired
@@ -40,6 +46,16 @@ class ProductControllerTest {
 
     @MockitoBean
     private ProductService productService;
+
+    @BeforeEach
+    void setUp() {
+        SecurityTestSupport.authenticate(2L, "seller@example.com", UserRole.SELLER);
+    }
+
+    @AfterEach
+    void tearDown() {
+        SecurityTestSupport.clear();
+    }
 
     private User seller() {
         User user = new User();
@@ -117,7 +133,6 @@ class ProductControllerTest {
                 eq(new BigDecimal("19.99")))).thenReturn(created);
 
         mockMvc.perform(post("/api/products")
-                        .header("X-User-Id", "2")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                                 {
@@ -136,7 +151,6 @@ class ProductControllerTest {
     @Test
     void createProductWithInvalidBodyReturnsBadRequest() throws Exception {
         mockMvc.perform(post("/api/products")
-                        .header("X-User-Id", "2")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                                 {
@@ -148,26 +162,11 @@ class ProductControllerTest {
     }
 
     @Test
-    void createProductWithoutUserHeaderReturnsBadRequest() throws Exception {
-        mockMvc.perform(post("/api/products")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content("""
-                                {
-                                  "categoryId": 1,
-                                  "title": "Spring Guide",
-                                  "price": 19.99
-                                }
-                                """))
-                .andExpect(status().isBadRequest());
-    }
-
-    @Test
     void updateProductReturnsUpdated() throws Exception {
         when(productService.updateProduct(eq(2L), eq(1L), eq(null), eq("New Title"), eq(null), eq(null)))
                 .thenReturn(product(1L, ProductStatus.DRAFT));
 
         mockMvc.perform(put("/api/products/1")
-                        .header("X-User-Id", "2")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                                 {
@@ -179,7 +178,7 @@ class ProductControllerTest {
 
     @Test
     void archiveProductReturnsNoContent() throws Exception {
-        mockMvc.perform(delete("/api/products/1").header("X-User-Id", "2"))
+        mockMvc.perform(delete("/api/products/1"))
                 .andExpect(status().isNoContent());
     }
 
@@ -187,7 +186,7 @@ class ProductControllerTest {
     void submitProductReturnsSubmitted() throws Exception {
         when(productService.submitForApproval(2L, 1L)).thenReturn(product(1L, ProductStatus.PENDING_APPROVAL));
 
-        mockMvc.perform(patch("/api/products/1/submit").header("X-User-Id", "2"))
+        mockMvc.perform(patch("/api/products/1/submit"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.status").value("PENDING_APPROVAL"));
     }
@@ -203,11 +202,11 @@ class ProductControllerTest {
 
     @Test
     void createProductWhenSellerMissingReturnsNotFound() throws Exception {
+        SecurityTestSupport.authenticate(99L, "missing@example.com", UserRole.SELLER);
         when(productService.createProduct(any(), any(), any(), any(), any()))
                 .thenThrow(new ResourceNotFoundException("Seller not found"));
 
         mockMvc.perform(post("/api/products")
-                        .header("X-User-Id", "99")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                                 {
