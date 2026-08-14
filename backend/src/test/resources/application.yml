@@ -1,0 +1,37 @@
+# Test configuration.
+#
+# NOTE: This file fully shadows src/main/resources/application.yml on the test
+# classpath, so it mirrors the production configuration verbatim and only
+# differs by disabling the development-only demo data initializer.
+spring:
+  application:
+    name: sharvesh-mart-backend
+
+  datasource:
+    url: ${DATABASE_URL:jdbc:h2:mem:sharveshmart;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE}
+    driver-class-name: ${DATABASE_DRIVER:org.h2.Driver}
+    username: ${DB_USERNAME:sa}
+    password: ${DB_PASSWORD:}
+  jpa:
+    hibernate:
+      ddl-auto: update
+    open-in-view: false
+    properties:
+      hibernate:
+        dialect: ${JPA_DIALECT:org.hibernate.dialect.H2Dialect}
+
+server:
+  port: ${PORT:8080}
+
+app:
+  jwt:
+    secret: ${JWT_SECRET:dev-only-jwt-secret-change-me-in-production-0123456789}
+    expiration-ms: ${JWT_EXPIRATION_MS:86400000}
+  demo-data:
+    enabled: false
+
+springdoc:
+  swagger-ui:
+    path: /swagger-ui.html
+  api-docs:
+    path: /v3/api-docs

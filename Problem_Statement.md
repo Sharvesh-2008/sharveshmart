@@ -1,7 +1,7 @@
 # Problem Statement
 
 ## 1. Title
-**Digital Products Marketplace** — an online platform for buying and selling digital products, including ebooks, software, digital templates, design assets, and courses.
+**Sharvesh Mart** — an online platform for buying and selling digital products, including ebooks, software, digital templates, design assets, and courses.
 
 ## 2. Domain
 E-commerce / Digital Goods Marketplace

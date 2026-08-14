@@ -5,7 +5,7 @@
 
 ## 1. Purpose
 
-This class diagram defines the **domain/entity model** for the Digital Products Marketplace as
+This class diagram defines the **domain/entity model** for the Sharvesh Mart as
 Java application classes. It is a design document, not a final source file — it deliberately omits
 controller/service/repository/DTO plumbing and every method/getter/setter to stay readable. It is
 fully consistent with the 11 entities in `er-diagram.md`, the roles and statuses in

@@ -5,7 +5,7 @@
 
 ## 1. Database Overview
 
-The Digital Products Marketplace uses **PostgreSQL 15** as its system of record. This document
+Sharvesh Mart uses **PostgreSQL 15** as its system of record. This document
 defines the physical schema for the MVP: users/roles, product catalog, cart, orders, payments,
 reviews, and purchase entitlements. Actual digital product files are **not** stored here — the
 database keeps only metadata/references (`product_files`). Persistence later uses Spring Data JPA

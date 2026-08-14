@@ -1,0 +1,11 @@
+package com.sharveshmart.repository;
+
+import com.sharveshmart.entity.ProductFile;
+import org.springframework.data.jpa.repository.JpaRepository;
+
+import java.util.List;
+
+public interface ProductFileRepository extends JpaRepository<ProductFile, Long> {
+
+    List<ProductFile> findByProductId(Long productId);
+}

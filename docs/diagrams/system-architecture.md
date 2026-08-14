@@ -5,7 +5,7 @@
 
 ## 1. Architecture Overview
 
-The Digital Products Marketplace uses a **modular monolith** — a single Spring Boot REST
+Sharvesh Mart uses a **modular monolith** — a single Spring Boot REST
 backend serving a React single-page application, with PostgreSQL as the system of record.
 
 - **Frontend:** React.js + Tailwind CSS + Axios (SPA, deployed to Vercel).

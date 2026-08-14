@@ -1,15 +1,16 @@
 spring:
   application:
-    name: digital-marketplace-backend
+    name: sharvesh-mart-backend
 
-  # Development default: in-memory H2 database so the application boots and
-  # runs without requiring a live PostgreSQL instance (Docker/PostgreSQL-free).
-  # Override at deploy time via DATABASE_URL / DB_USERNAME / DB_PASSWORD
-  # environment variables to point at PostgreSQL.
+  # Default datasource: PostgreSQL (used for both local development and production).
+  # The database "sharveshmart" must already exist; schema is managed by
+  # Hibernate (ddl-auto: update). Override via DATABASE_URL / DATABASE_DRIVER /
+  # DB_USERNAME / DB_PASSWORD / JPA_DIALECT (e.g. set these in your environment
+  # or in application.yml for production).
   datasource:
-    url: ${DATABASE_URL:jdbc:h2:mem:digitalmarketplace;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE}
-    driver-class-name: ${DATABASE_DRIVER:org.h2.Driver}
-    username: ${DB_USERNAME:sa}
+    url: ${DATABASE_URL:jdbc:postgresql://127.0.4.7:5432/sharveshmart}
+    driver-class-name: ${DATABASE_DRIVER:org.postgresql.Driver}
+    username: ${DB_USERNAME:postgres}
     password: ${DB_PASSWORD:}
   jpa:
     hibernate:
@@ -17,7 +18,7 @@ spring:
     open-in-view: false
     properties:
       hibernate:
-        dialect: ${JPA_DIALECT:org.hibernate.dialect.H2Dialect}
+        dialect: ${JPA_DIALECT:org.hibernate.dialect.PostgreSQLDialect}
 
 server:
   port: ${PORT:8080}
@@ -31,6 +32,10 @@ app:
     # a local-development-only secret so the app boots with spring-boot:run.
     secret: ${JWT_SECRET:dev-only-jwt-secret-change-me-in-production-0123456789}
     expiration-ms: ${JWT_EXPIRATION_MS:86400000}
+  demo-data:
+    # Development-only demo data (DemoDataInitializer). The initializer refuses to
+    # run on PostgreSQL and is idempotent. Disabled in tests via src/test/resources.
+    enabled: true
 
 springdoc:
   swagger-ui:

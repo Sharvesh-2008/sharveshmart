@@ -5,7 +5,7 @@
 
 ## 1. Purpose
 
-This ER model captures the domain for the Digital Products Marketplace MVP: product catalog,
+This ER model captures the domain for the Sharvesh Mart MVP: product catalog,
 seller ownership, cart/checkout, orders, transactions, purchase ownership, controlled digital
 access, and reviews. It is a **conceptual/relational model** — final physical schema, indexes,
 and migrations are designed in a later step. It deliberately avoids many-to-many relationships

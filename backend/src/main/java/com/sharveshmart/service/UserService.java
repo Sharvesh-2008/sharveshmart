@@ -1,0 +1,63 @@
+package com.sharveshmart.service;
+
+import com.sharveshmart.entity.User;
+import com.sharveshmart.entity.UserRole;
+import com.sharveshmart.exception.BusinessException;
+import com.sharveshmart.repository.UserRepository;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.authentication.BadCredentialsException;
+import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import java.util.Optional;
+
+@Service
+public class UserService {
+
+    private final UserRepository userRepository;
+    private final BCryptPasswordEncoder passwordEncoder;
+
+    @Autowired
+    public UserService(UserRepository userRepository, BCryptPasswordEncoder passwordEncoder) {
+        this.userRepository = userRepository;
+        this.passwordEncoder = passwordEncoder;
+    }
+
+    @Transactional(readOnly = true)
+    public User authenticate(String email, String rawPassword) {
+        User user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new BadCredentialsException("Invalid email or password"));
+        if (!passwordEncoder.matches(rawPassword, user.getPasswordHash())) {
+            throw new BadCredentialsException("Invalid email or password");
+        }
+        return user;
+    }
+
+    @Transactional(readOnly = true)
+    public Optional<User> findById(Long userId) {
+        return userRepository.findById(userId);
+    }
+
+    @Transactional(readOnly = true)
+    public Optional<User> findByEmail(String email) {
+        return userRepository.findByEmail(email);
+    }
+
+    @Transactional
+    public User createUser(String name, String email, String rawPassword, UserRole role) {
+        if (email == null || email.isBlank()) {
+            throw new BusinessException("Email is required");
+        }
+        if (userRepository.findByEmail(email).isPresent()) {
+            throw new BusinessException("An account with that email already exists");
+        }
+
+        User user = new User();
+        user.setName(name);
+        user.setEmail(email);
+        user.setPasswordHash(passwordEncoder.encode(rawPassword));
+        user.setRole(role == null ? UserRole.USER : role);
+        return userRepository.save(user);
+    }
+}

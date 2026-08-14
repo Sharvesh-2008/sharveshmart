@@ -1,0 +1,98 @@
+package com.sharveshmart.service;
+
+import com.sharveshmart.entity.Cart;
+import com.sharveshmart.entity.CartItem;
+import com.sharveshmart.entity.Product;
+import com.sharveshmart.entity.User;
+import com.sharveshmart.exception.BusinessException;
+import com.sharveshmart.exception.ResourceNotFoundException;
+import com.sharveshmart.repository.CartItemRepository;
+import com.sharveshmart.repository.CartRepository;
+import com.sharveshmart.repository.UserRepository;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import java.util.List;
+
+@Service
+public class CartService {
+
+    private final CartRepository cartRepository;
+    private final CartItemRepository cartItemRepository;
+    private final UserRepository userRepository;
+    private final ProductService productService;
+
+    public CartService(CartRepository cartRepository,
+                       CartItemRepository cartItemRepository,
+                       UserRepository userRepository,
+                       ProductService productService) {
+        this.cartRepository = cartRepository;
+        this.cartItemRepository = cartItemRepository;
+        this.userRepository = userRepository;
+        this.productService = productService;
+    }
+
+    @Transactional
+    public Cart getOrCreateCart(Long userId) {
+        return cartRepository.findByUserId(userId)
+                .orElseGet(() -> {
+                    User user = userRepository.findById(userId)
+                            .orElseThrow(() -> new ResourceNotFoundException("User not found"));
+                    Cart cart = new Cart();
+                    cart.setUser(user);
+                    return cartRepository.save(cart);
+                });
+    }
+
+    @Transactional(readOnly = true)
+    public Cart getCart(Long userId) {
+        return cartRepository.findByUserId(userId)
+                .orElseThrow(() -> new ResourceNotFoundException("Cart not found"));
+    }
+
+    @Transactional
+    public CartItem addItem(Long userId, Long productId, int quantity) {
+        Product product = productService.getApprovedProduct(productId);
+        Cart cart = getOrCreateCart(userId);
+
+        return cartItemRepository.findByCartIdAndProductId(cart.getId(), productId)
+                .map(existing -> {
+                    existing.setQuantity(existing.getQuantity() + quantity);
+                    return cartItemRepository.save(existing);
+                })
+                .orElseGet(() -> {
+                    CartItem item = new CartItem();
+                    item.setCart(cart);
+                    item.setProduct(product);
+                    item.setQuantity(quantity);
+                    return cartItemRepository.save(item);
+                });
+    }
+
+    @Transactional
+    public CartItem updateItemQuantity(Long userId, Long productId, int quantity) {
+        if (quantity < 1) {
+            throw new BusinessException("Quantity must be at least 1");
+        }
+        Cart cart = getOrCreateCart(userId);
+        CartItem item = cartItemRepository.findByCartIdAndProductId(cart.getId(), productId)
+                .orElseThrow(() -> new ResourceNotFoundException("Cart item not found"));
+        item.setQuantity(quantity);
+        return cartItemRepository.save(item);
+    }
+
+    @Transactional
+    public void removeItem(Long userId, Long productId) {
+        Cart cart = getOrCreateCart(userId);
+        CartItem item = cartItemRepository.findByCartIdAndProductId(cart.getId(), productId)
+                .orElseThrow(() -> new ResourceNotFoundException("Cart item not found"));
+        cartItemRepository.delete(item);
+    }
+
+    @Transactional(readOnly = true)
+    public List<CartItem> listItems(Long userId) {
+        return cartRepository.findByUserId(userId)
+                .map(cart -> cartItemRepository.findByCartId(cart.getId()))
+                .orElseGet(List::of);
+    }
+}
